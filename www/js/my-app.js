@@ -2,7 +2,7 @@
 //device.uuid
 window.reloadPageInJs = false;
 
-window.debug = true;
+window.debug = false;
 window.startUrl = 'http://xn--c1acbe2apap.xn--90ais/ajax/mobil_app/';
 
 window.deviceId = '';
@@ -242,7 +242,7 @@ function getPage(page){
 		lpage(page);
 		
 	}
-	},1000);
+	},300);
 	
 	
 	}else{
@@ -260,7 +260,7 @@ function getPage(page){
 	if(res.rows.length > 0){
 	var tmp = getTmpl(res.rows.item(0)['type']);
 	if(!tmp){
-		loadCnt = '<p class="errorPage">ERROR load page '+page+'</p>';
+		loadCnt = '<p class="errorPage">ERROR load page '+page+'</p><p>Шаблон не найден, возможно произошла ошибка при загрузке данных. Проверьте соединение с интернетом и повторите загрузку.</p><p><a href="#" id="loadBase" class="button active">Загрузить данные</a></p>';
 	}else{
 		if (window.debug) console.log('startpage - '+page);
 		if(window.onPageGenerate !== false) {
@@ -276,7 +276,8 @@ function getPage(page){
 	
 	if((page == 'main' || page == 'main_old') && !loadCnt){
 		content = '' +                  
-		'<div class="content-block"> <div class="content-block-title">MLife. Скидки.</div><div class="content-block inset"><div class="content-block-inner">'+
+		'<div class="content-block"> <div class="content-block inset"><div class="content-block-inner">'+
+		'<p>Это первый запуск приложения. Дождитесь загрузки данных.</p>'+
 		''+
 		''+
 		'</div>' +
@@ -497,6 +498,7 @@ var pages_arr = [];
 
 function loadBaseDefault(step,step2){
 	
+	setTimeout(function(){
 	if(!step){
 	checkConnection();
 	if(!window.connection) {
@@ -504,7 +506,8 @@ function loadBaseDefault(step,step2){
 		return;
 	}
 	
-	$$('.page-content').append('<div class="content-block" id="ldTimer" style="margin:5px;"><div class="content-block-inner"><div class="loadpersent" style="border-radius:3px;display:block;width:10%;background:green;height:20px;color:#ffffff;text-align:center;">0%</div></div></div></div>');
+	$$('#ldTimer').remove();
+	$$('.page-content').prepend('<div class="content-block" id="ldTimer" style="margin:5px;"><div class="content-block-inner"><div class="loadpersent" style="border-radius:3px;display:block;width:10%;background:green;height:20px;color:#ffffff;text-align:center;">0%</div></div></div></div>');
 	
 	//window.myApp.showPreloader('Идет загрузка данных...')
 	$$("#loadBase").hide();
@@ -676,10 +679,11 @@ function loadBaseDefault(step,step2){
 		});
 		
 	}
-	
+	},150);
 }
 
 function loadPages(step,data){
+	setTimeout(function(){
 	if(step === false){
 		
 		var cnt = 0;
@@ -759,5 +763,6 @@ function loadPages(step,data){
 		}
 	
 	}
+	},150);
 	
 }
