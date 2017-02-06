@@ -1,6 +1,7 @@
 // Initialize your app
 //device.uuid
 window.reloadPageInJs = false;
+window.ftracer = false;
 
 window.debug = false;
 window.startUrl = 'http://xn--c1acbe2apap.xn--90ais/ajax/mobil_app/';
@@ -37,6 +38,7 @@ var pullToRefresh = false;
 var startPageContent = function(content){
 	if(content) content = content.replace("link.html?page=","");
 	if(!content) content = 'main';
+	trace('startPageContent '+content);
 	//setTimeout(function(){
 	getPage(content);
 	//},500);
@@ -48,9 +50,6 @@ document.addEventListener("deviceready",onRd,false);
 document.addEventListener("backbutton", function(){
 	if(typeof window.backButtonHandler == 'function'){
 		return window.backButtonHandler();
-	}else{
-		$$("a.backlink").click();
-		return false;
 	}
 }, false);
 
@@ -82,7 +81,7 @@ window.myApp.onPageInit('*', function (page) {
 //console.log(page);
 if(typeof window.initPageLoadCallback == 'function'){
 	window.initPageLoadCallback(page);
-	window.myApp.hidePreloader();
+	//window.myApp.hidePreloader();
 }
 return;
 });
@@ -104,7 +103,7 @@ if(typeof device != 'undefined') {
 	}
 }
 
-var timer = setTimeout(function t(){
+setTimeout(function t(){
 	if(!loadCnt) {
 		setTimeout(t,100);
 	}else{
@@ -122,7 +121,7 @@ var timer = setTimeout(function t(){
 		  animatePages: false,
 		  reload: window.reload
 		});
-		window.myApp.hidePreloader();
+		//window.myApp.hidePreloader();
 		
 		//window.reload = false;
 		loadJs();
@@ -215,7 +214,7 @@ function getTmpl(id){
 var loader = false;
 
 function getPage(page){
-	window.myApp.showPreloader("Загрузка страницы");
+	trace('getPage '+page);
 	checkConnection();
 	
 	if(typeof window.getPageHandler == 'function'){
@@ -232,7 +231,7 @@ function getPage(page){
 	loadVersion = false;
 	checkVersion();
 	
-	var timer = setTimeout(function t(){
+	setTimeout(function t(){
 	if(!loadVersion) {
 		setTimeout(t,300);
 	}else{
@@ -256,21 +255,25 @@ function getPage(page){
 	}
 	
 	function lpage(page){
+	trace('lpage '+page);
 	db.transaction(function(tx){
 	tx.executeSql("SELECT * FROM pages WHERE ID=?",[page],function(t,res){
+	trace('executeSql '+page);
 	if(res.rows.length > 0){
 		var tmp = getTmpl(res.rows.item(0)['type']);
 		if(!tmp){
 			loadCnt = '<div class="content-block-inner"><p class="errorPage">ERROR load page '+page+'</p><p>Шаблон не найден, возможно произошла ошибка при загрузке данных. Проверьте соединение с Internet и повторите загрузку.</p><p><a href="#" id="loadBase" class="button active">Загрузить данные</a></p></div>';
 		}else{
 			if (window.debug) console.log('startpage - '+page);
-			if(window.onPageGenerate !== false) {
+			if(typeof window.onPageGenerate == 'function') {
 				var loadCntTemp = window.onPageGenerate(page,JSON.parse(res.rows.item(0)['text']),tmp);
 				if(loadCntTemp) loadCnt = loadCntTemp;
 			}
 			if(!loadCnt){
+			trace('start compiled '+page);
 			var compiled = Template7(tmp).compile();
 			loadCnt = compiled(JSON.parse(res.rows.item(0)['text']));
+			trace('end compiled '+page);
 			}
 		}
 	}
@@ -314,92 +317,53 @@ function getPage(page){
 
 }
 
-
-
-
-
-
-$$(document).on('click','a.backlink',function(e){
-	e.preventDefault();
-	if(window.curentLoadBase) return false;
-	var count = 0;
-	var lastHistory = '';
-	var prevHistory = '';
-	$$.each(window.mainView.history, function (ind, val) {
-		count = count +1;
-		prevHistory = lastHistory;
-		lastHistory = val;
-	});
-	//console.log(lastHistory);
-	if((count > 0) && (prevHistory.indexOf("#content-") !== -1)) {
-		if((prevHistory.indexOf("#content-main") === 0) || (lastHistory.indexOf("#content-main") === 0)){
-			//window.myApp.openPanel("left");
-			$$("#pMain").click();
-			return;
-		}else{
-			window.mainView.router.back();
-		}
-	}else{
-		//window.myApp.openPanel("left");
-		$$("#pMain").click();
-	}
-	return;
-});
-
-$$(document).on('click','a',function(e){
-	
-	if($$(this).hasClass('backlink')) return;
-	
-	if($$(this).attr('href').indexOf('#') === 0){
-		e.preventDefault();
-	}
-	
-	if($$(this).attr('href').indexOf('link.html') === 0){
-	e.preventDefault();
-	}
-	
-	if(window.curentLoadBase) return false;
-	
-	loadPageForUrl($$(this).attr('href'));
-	
-	
-});
-
 function loadPageForUrl(href){
 	if(href.indexOf('link.html') === 0){
-		
+		trace('loadPageForUrl start '+href);
 		
 		startPageContent(href);
-		
-		var timer = setTimeout(function t(){
-		if(!loadCnt) {
-			setTimeout(t,300);
-		}else{
-		content = loadCnt;
-		loadCnt = false;
-		
-		if(!pullToRefresh){
-		content = '<div class="page" data-page="'+curentPage+'"><div class="page-content">'+content+'</div></div>';
-		}else{
-		pullToRefresh = false;
-		content = '<div class="page" data-page="'+curentPage+'"><div class="page-content pull-to-refresh-content"><div class="pull-to-refresh-layer"><div class="preloader"></div><div class="pull-to-refresh-arrow"></div></div>'+content+'</div></div>';
-		}
-		if(curentPage == 'main' || curentPage == 'main_old') {
-			window.reload = true;
-		}
-		window.mainView.router.load({
-		  content: content,
-		  animatePages: false,
-		  reload: window.reload,
-		  ignoreCache: true
-		});
-		if(curentPage == 'main' || curentPage == 'main_old') {
-			window.reload = false;
-		}
-		window.myApp.hidePreloader();
+		trace('loadPageForUrl start paste '+href);
+		setTimeout(function t(){
+			trace('loadPageForUrl start paste '+href);
+			if(!loadCnt) {
+				setTimeout(t,50);
+			}else{
 			
-		}
-		},300);
+			
+			if(typeof window.custom__loadPageForUrl == 'function') {
+			//return;
+				window.custom__loadPageForUrl(href);
+			
+			}else{
+			
+				content = loadCnt;
+				loadCnt = false;
+				
+				if(!pullToRefresh){
+				content = '<div class="page" data-page="'+curentPage+'"><div class="page-content">'+content+'</div></div>';
+				}else{
+				pullToRefresh = false;
+				content = '<div class="page" data-page="'+curentPage+'"><div class="page-content pull-to-refresh-content"><div class="pull-to-refresh-layer"><div class="preloader"></div><div class="pull-to-refresh-arrow"></div></div>'+content+'</div></div>';
+				}
+				if(curentPage == 'main' || curentPage == 'main_old') {
+					window.reload = true;
+				}
+				window.mainView.router.load({
+				  content: content,
+				  animatePages: false,
+				  reload: window.reload,
+				  ignoreCache: true
+				});
+				if(curentPage == 'main' || curentPage == 'main_old') {
+					window.reload = false;
+				}
+				trace('loadPageForUrl end paste '+href);
+				//window.myApp.hidePreloader();
+				
+			}
+			
+			}
+		},0);
 	
 	}else{
 		return;
@@ -409,9 +373,7 @@ function loadPageForUrl(href){
 
 
 
-$$(document).on('click', '.closep', function (e) {
-window.myApp.closePanel();
-});
+
 
 function getVersion(){
 	var last = localStorage.getItem('last_version');
@@ -428,17 +390,17 @@ if(last == version){
 		
 		loadVersion = false;
 		
-		setTimeout(function(){
+		//setTimeout(function(){
 		$$.ajax({
 			url : window.startUrl+'version/',
-			async : false,
+			//async : false,
 			data : {device:window.deviceId, key: localStorage.getItem('authorize_key')},
 			dataType: 'html',
 			timeout: 5000,
 			success : function(data){
 				if(data != version) {
 					localStorage.setItem('last_version',data);
-					version = data;
+					//version = data;
 					loadVersion = true;
 				}else{
 					loadVersion = true;
@@ -447,9 +409,12 @@ if(last == version){
 			error: function(){
 				window.connection = false;
 				loadVersion = true;
+			},
+			complete: function(){
+				loadVersion = true;
 			}
 		});
-		},150);
+		//},150);
 		
 	}else{
 		loadVersion = true;
@@ -514,20 +479,47 @@ db.transaction(function(tx){
 });
 }
 
-$$(document).on('click', '#exit', function () {
-if(window.curentLoadBase) return false;
-	if (navigator && navigator.app) {
-         navigator.app.exitApp();
-    }else{
-        if (navigator && navigator.device) {
-            navigator.device.exitApp();
+$$(document).on('click','a',function(e){
+	
+	if($$(this).hasClass('closep')) {
+		window.myApp.closePanel();
+	}
+	
+	if(window.curentLoadBase) {
+		e.preventDefault(); 
+		return false;
+	}
+	
+	if($$(this).attr('id')=='loadBase'){
+		
+		e.preventDefault();
+		
+		loadBaseDefault();
+		
+	}if($$(this).attr('id')=='exit'){
+		
+		e.preventDefault();
+		
+		if (navigator && navigator.app) {
+			navigator.app.exitApp();
+		}else{
+			if (navigator && navigator.device) {
+				navigator.device.exitApp();
+			}
 		}
-    }
-});
-
-$$(document).on('click', '#loadBase',function (e) {
-if(window.curentLoadBase) return false;
-	loadBaseDefault();
+		
+	}
+	
+	if($$(this).attr('href').indexOf('#') === 0){
+		e.preventDefault();
+	}
+	
+	if($$(this).attr('href').indexOf('link.html') === 0){
+		e.preventDefault();
+	}
+	
+	loadPageForUrl($$(this).attr('href'));
+	
 });
 
 var pages_arr = [];
@@ -836,6 +828,7 @@ function loadPages(step,data){
 										timeout: 5000,
 										success : function(data){
 											localStorage.setItem('version',data);
+											localStorage.setItem('last_version',data);
 											version = data;
 											loadVersion = true;
 											window.curentLoadBase = false;
@@ -884,4 +877,16 @@ function loadPages(step,data){
 	}
 	},150);
 	
+}
+
+var tracer = '';
+var tracerStart = '';
+
+function trace(text, tm){
+	if(!window.ftracer) return;
+	if(!tm) tm = 0;
+	var d = new Date();
+	if(!tracer) tracerStart = d.getTime();
+	var new_time = (d.getTime() - tracerStart + tm);
+	tracer += new_time + 'ms - '+ text+'<br>';
 }
